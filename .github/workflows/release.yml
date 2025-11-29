@@ -47,5 +47,5 @@ jobs:
       # Add to ntfy.sh
       - name: Send URL to ntfy.sh
         run: |
-          curl -d "https://github.com/MattEqualsOverflow/MediaManagerReleases/archive/refs/tags/${{ steps.get-tag.outputs.tag }}.zip ${{ secrets.NTFY_TOPIC }}"
+          curl -d "https://github.com/MattEqualsOverflow/MediaManagerReleases/archive/refs/tags/${{ steps.get-tag.outputs.tag }}.zip" "${{ secrets.NTFY_TOPIC }}"
 
