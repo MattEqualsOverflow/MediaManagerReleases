@@ -4,6 +4,9 @@ on:
   push:
     branches: [ main ]
 
+permissions:
+  contents: write
+  
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -25,29 +28,28 @@ jobs:
           done
           echo "All required backup files exist."
 
-      # Create release tag from current data
-      - name: Generate release tag
-        id: tag
+      # Create release tag from current date
+      - name: Get Tag
+        id: get-tag
+        shell: pwsh
         run: |
-          # Use timestamp for unique tag
-          TIMESTAMP=$(date -u +"%Y%m%d%H%M%S")
-          TAG="backup-$TIMESTAMP"
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          $time = (Get-Date).ToString("yyyyMMddHHmm")
+          Write-Host "tag=v$time"
+          Write-Output "tag=v$time" >> $env:GITHUB_OUTPUT
 
-      # Create release
-      - name: Create GitHub release with assets
-        uses: softprops/action-gh-release@v1
+      - name: Upload artifact
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          name: Backup ${{ steps.tag.outputs.tag }}
-          body: "Automated encrypted backup release."
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          path: |
+            backup.enc
+            extra_key.txt
+            iv.txt
+          name: MediaManager_${{ steps.get-tag.outputs.tag }}
 
-      # Upload files to release
-      - name: Upload encrypted backup files
-        uses: softprops/action-gh-release@v1
+      - uses: ncipollo/release-action@v1
+        if: ${{ github.event_name != 'pull_request' }}
         with:
-          files: backup.enc,iv.txt,extra_key.txt
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          artifacts: "MediaManager_${{ steps.get-tag.outputs.tag }}.zip"
+          tag: ${{ steps.get-tag.outputs.tag }}
+          omitBody: true
