@@ -1,0 +1,53 @@
+name: Create Backup Release
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Validate files
+      - name: Validate backup files
+        run: |
+          FILES=("backup.enc" "iv.txt" "extra_key.txt")
+          for f in "${FILES[@]}"; do
+            if [[ ! -f "$f" ]]; then
+              echo "Error: $f not found in repo."
+              exit 1
+            fi
+          done
+          echo "All required backup files exist."
+
+      # Create release tag from current data
+      - name: Generate release tag
+        id: tag
+        run: |
+          # Use timestamp for unique tag
+          TIMESTAMP=$(date -u +"%Y%m%d%H%M%S")
+          TAG="backup-$TIMESTAMP"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+      # Create release
+      - name: Create GitHub release with assets
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: Backup ${{ steps.tag.outputs.tag }}
+          body: "Automated encrypted backup release."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Upload files to release
+      - name: Upload encrypted backup files
+        uses: softprops/action-gh-release@v1
+        with:
+          files: backup.enc,iv.txt,extra_key.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
